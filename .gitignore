@@ -1,0 +1,7 @@
+node_modules/
+.bdk/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
