@@ -2,7 +2,9 @@ import { z } from "zod";
 
 const text = z.string().trim().min(1);
 const SourceSchema = z.object({
-  url: z.url({ protocol: /^https$/ }),
+  // Canonicalize: URL.href percent-encodes or strips characters (newlines, <, >, spaces)
+  // that could break out of the rendered <url> autolink.
+  url: z.url({ protocol: /^https$/ }).transform((url) => new URL(url).href),
   publisher: text,
   publishedAt: z.iso.datetime({ offset: true }).optional(),
 });
@@ -36,6 +38,17 @@ export const BriefSchema = z.object({
 export type BriefInput = z.input<typeof BriefSchema>;
 export type Brief = z.output<typeof BriefSchema>;
 
+// Common second-level labels under country-code TLDs (e.g. co.uk, com.au).
+const SECOND_LEVEL = new Set(["ac", "co", "com", "edu", "gov", "govt", "judiciary", "law", "ltd", "mil", "net", "nhs", "nic", "or", "org", "plc", "police", "sch"]);
+
+/** Approximate registrable domain, so subdomains of one publisher count once. */
+export function registrableDomain(url: string): string {
+  const labels = new URL(url).hostname.toLowerCase().replace(/\.$/, "").split(".");
+  if (labels.length <= 2) return labels.join(".");
+  const take = labels.at(-1)!.length === 2 && SECOND_LEVEL.has(labels.at(-2)!) ? 3 : 2;
+  return labels.slice(-take).join(".");
+}
+
 export function validateBrief(input: unknown): { brief: Brief; warnings: string[] } {
   const brief = BriefSchema.parse(input);
   const warnings: string[] = [];
@@ -46,10 +59,10 @@ export function validateBrief(input: unknown): { brief: Brief; warnings: string[
       seen.add(source.url);
       return true;
     });
-    const hosts = new Set(incident.sources.map(({ url }) => new URL(url).hostname.replace(/^www\./, "")));
+    const hosts = new Set(incident.sources.map(({ url }) => registrableDomain(url)));
     if (incident.status === "confirmed" && hosts.size < 2) {
       incident.status = "reported";
-      warnings.push(`${incident.title}: downgraded from confirmed to reported; requires sources on at least two distinct hosts.`);
+      warnings.push(`${incident.title}: downgraded from confirmed to reported; requires sources on at least two distinct domains.`);
     }
   }
   return { brief, warnings };

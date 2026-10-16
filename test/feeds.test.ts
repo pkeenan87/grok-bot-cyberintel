@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import agent from "../bot/agent.js";
 import { FEEDS, FEED_HOSTS, parseFeed, type FeedConfig, type FeedItem } from "../bot/lib/feeds.js";
 import { scoreItem } from "../bot/lib/relevance.js";
-import tool, { fetchFeeds, windowSchema } from "../bot/tools/fetch_feeds.js";
+import tool, { fetchFeeds, windowSchema, readCapped, MAX_FEED_BYTES } from "../bot/tools/fetch_feeds.js";
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}.xml`, import.meta.url), "utf8");
 const feed: FeedConfig = { id: "test", name: "Test Source", url: "https://example.com/feed", kind: "security" };
@@ -94,6 +94,26 @@ describe("fetch_feeds", () => {
     expect(result.items).toEqual([]);
     expect(result.feedErrors).toHaveLength(FEEDS.length);
     expect(result.window).toEqual(window);
+  });
+  it("rejects oversized feeds before parsing, as a per-feed error, and stops reading the stream", async () => {
+    let pulled = 0;
+    const chunk = new Uint8Array(256 * 1024).fill(32);
+    const endless = () => new Response(new ReadableStream({ pull(controller) { pulled++; controller.enqueue(chunk); } }));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => url === FEEDS[0].url
+      ? endless()
+      : url === FEEDS[1].url
+        ? new Response("<rss/>", { headers: { "content-length": String(MAX_FEED_BYTES + 1) } })
+        : new Response(rss([]))));
+    const result = await fetchFeeds(window);
+    expect(result.feedErrors).toEqual([
+      { feedId: FEEDS[0].id, error: `Feed exceeds ${MAX_FEED_BYTES} bytes` },
+      { feedId: FEEDS[1].id, error: `Feed exceeds ${MAX_FEED_BYTES} bytes` },
+    ]);
+    expect(pulled).toBeLessThanOrEqual(MAX_FEED_BYTES / chunk.byteLength + 2);
+  });
+  it("reads bodies up to the byte cap", async () => {
+    expect(await readCapped(new Response("x".repeat(10)), 10)).toBe("x".repeat(10));
+    await expect(readCapped(new Response("x".repeat(11)), 10)).rejects.toThrow(/exceeds 10 bytes/);
   });
   it("caps output at 40 newest items", async () => {
     const xml = rss(Array.from({ length: 45 }, (_, i) => ({ title: "Law firm breach", url: `https://example.com/${i}`, date: new Date(Date.parse(window.since) + i * 60_000).toISOString() })));

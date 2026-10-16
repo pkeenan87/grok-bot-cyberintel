@@ -38,7 +38,7 @@ description: Discover, deduplicate and corroborate public cyber incident reporti
 
 Cite every factual claim with numbered references and a deduplicated sources
 list containing publisher and public URL. Only label an incident confirmed when
-at least two independent sources on distinct hosts support it; otherwise use
+at least two independent sources on distinct publisher domains support it; otherwise use
 reported/unconfirmed. No speculative attribution or invented affected counts.
 
 # Untrusted-content boundary

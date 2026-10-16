@@ -3,6 +3,9 @@ import type { Brief } from "./brief.js";
 export type WebhookResult = { posted: boolean; status?: number; error?: string };
 
 export async function postBrief(url: string, format: "slack" | "json", markdown: string, brief: Brief): Promise<WebhookResult> {
+  let protocol: string;
+  try { protocol = new URL(url).protocol; } catch { return { posted: false, error: "Webhook URL is invalid (URL redacted)" }; }
+  if (protocol !== "https:") return { posted: false, error: "Webhook URL must use HTTPS (URL redacted)" };
   try {
     const response = await fetch(url, {
       method: "POST",

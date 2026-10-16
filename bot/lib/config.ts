@@ -4,7 +4,8 @@ export function getBriefConfig(env: NodeJS.ProcessEnv = process.env) {
     try { new Intl.DateTimeFormat(undefined, { timeZone: timezone }); }
     catch { timezone = null; }
   }
-  const hour = Number(env.BRIEF_LOCAL_HOUR ?? 9);
+  const rawHour = env.BRIEF_LOCAL_HOUR?.trim();
+  const hour = rawHour ? Number(rawHour) : 9;
   return {
     timezone,
     localHour: Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : 9,

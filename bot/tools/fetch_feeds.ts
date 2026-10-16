@@ -10,6 +10,29 @@ export const windowSchema = z.object({
   message: "since must not be after until",
 });
 
+export const MAX_FEED_BYTES = 2 * 1024 * 1024;
+
+/** Read a response body, aborting once it exceeds maxBytes (before any parsing). */
+export async function readCapped(response: Response, maxBytes = MAX_FEED_BYTES): Promise<string> {
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) throw new Error(`Feed exceeds ${maxBytes} bytes`);
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      throw new Error(`Feed exceeds ${maxBytes} bytes`);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 /** Exported for deterministic tests; the tool always uses the committed feeds. */
 export async function fetchFeeds(input: z.infer<typeof windowSchema>) {
   const window = windowSchema.parse(input);
@@ -22,7 +45,7 @@ export async function fetchFeeds(input: z.infer<typeof windowSchema>) {
         headers: { "user-agent": "legal-cyber-brief/0.1 (public RSS research)", accept: "application/rss+xml, application/atom+xml, application/xml, text/xml" },
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const items = parseFeed(await response.text(), feed).filter((item) => {
+      const items = parseFeed(await readCapped(response), feed).filter((item) => {
         if (!item.publishedAt) return false;
         const published = Date.parse(item.publishedAt);
         return published >= since && published <= until && scoreItem(item, feed.kind).relevant;

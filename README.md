@@ -6,7 +6,8 @@ legal-tech vendors. It fetches RSS/Atom feeds, discovers and corroborates report
 with web search, then validates and renders a structured brief (up to eight
 incidents) with numbered HTTPS citations. Submission stores a BDK artifact and
 records delivery state; an optional webhook receives Slack text or JSON.
-Single-source claims cannot be marked confirmed. Feed and search content is
+Confirmed incidents need sources on two distinct publisher domains (subdomains
+of one site count once). Feed and search content is
 untrusted data, not instructions.
 
 ## Layout
@@ -106,9 +107,9 @@ Every secret name declared in `bot/agent.ts` is documented here:
 | Secret | Purpose |
 | --- | --- |
 | `BRIEF_TIMEZONE` | Required valid IANA timezone. Missing/invalid fails closed, including manual requests. |
-| `BRIEF_WEBHOOK_URL` | Optional HTTPS destination; treat the entire URL as a credential. Unset means artifact-only delivery. |
+| `BRIEF_WEBHOOK_URL` | Optional destination; non-HTTPS URLs are refused; treat the entire URL as a credential. Unset means artifact-only delivery. |
 | `BRIEF_WEBHOOK_FORMAT` | Optional format selector: `slack` sends a text field; `json` sends markdown and structured brief. Defaults to Slack format. |
-| `BRIEF_LOCAL_HOUR` | Optional integer hour from 0–23; defaults to 9. Invalid settings fall back to 9. |
+| `BRIEF_LOCAL_HOUR` | Optional integer hour from 0–23; defaults to 9. Empty or invalid settings fall back to 9. |
 
 Set optional secrets only when needed:
 
@@ -146,18 +147,28 @@ gate evaluates the weekday and hour in `BRIEF_TIMEZONE`. By default it starts at
 09:00 local on local weekdays, automatically shifting the UTC hour across DST;
 Monday locally can still be Sunday UTC. Up to two catch-up ticks (10:00 and
 11:00 local at the default hour) can recover a missed/failed run. The configured
-hour and catch-up range do not wrap past local midnight.
+hour and catch-up range do not wrap past local midnight. Ticks land on the UTC hour,
+so zones with half- or quarter-hour offsets start at the first tick inside the local
+hour (for example 09:30 in Asia/Kolkata, 09:45 in Asia/Kathmandu); exact 09:00 is
+guaranteed only for whole-hour offsets.
 
 KV `delivered:<localDate>` prevents another normal run after submission; a
 `claim:<localDate>` lease blocks overlapping attempts for 30 minutes.
-`lastSuccessfulUntil` determines the next reporting window, initially 72 hours
+Claims are taken with compare-and-set when the KV supports it and are always
+serialized within one process. Each claim records the run's timezone and window;
+`submit_brief` updates delivery state and posts the webhook only when the brief
+matches the claimed run (a mismatch is rejected; no claim for the date means
+artifact only). The claim is consumed on submission, so a retried or repeated
+`submit_brief` in the same run is refused and delivers at most once. If storing the
+artifact or delivery state fails, the claim is released so the same run can retry. `lastSuccessfulUntil` determines the next reporting window, initially 72 hours
 and capped at 96 hours of lookback. Nonmatching ticks do not invoke the model.
 
 A hosted schedule run must finish within **26 minutes**, including background
 work passed to `waitUntil`/`receive`. Keep searches bounded (the instructions cap
 research effort) and investigate slow sessions before this deadline. For
-**self-hosting, use a single process/replica with persistent state**: KV
-read-then-write claims are not a distributed lock, so multiple runtimes can race.
+**self-hosting, use a single process/replica with persistent state**: without
+KV compare-and-set, claims are only serialized within one process, so multiple
+runtimes can race.
 
 ### Verify production
 
@@ -188,5 +199,5 @@ a cyber-term match; security/government feeds require a legal-sector match.
 `FEED_HOSTS` is derived from these URLs and imported by `bot/agent.ts` for egress.
 Keep parser/relevance fixtures and tests current, run the checks above, then
 review, commit/push and **redeploy**. Adding or changing a feed hostname changes
-hosted egress and cannot be applied by changing secrets alone. Individual feed
+hosted egress and cannot be applied by changing secrets alone. Feed bodies over 2 MB are rejected before parsing. Individual feed
 failures are returned to the agent without failing the entire fetch.

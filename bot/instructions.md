@@ -20,7 +20,7 @@ Follow the legal-cyber-research skill:
 
 Keep the brief concise: at most 8 incidents and approximately 400 words before
 sources. Every factual claim needs a numbered citation linked to a public source.
-Use 'confirmed' only with at least two independent sources from distinct hosts;
+Use 'confirmed' only with at least two independent sources from distinct publisher domains (subdomains of one site count once);
 otherwise use 'reported' or 'unconfirmed' with explicit uncertainty. Do not
 speculate about attribution, impact, affected counts, or stolen data. If no
 qualifying incidents are found, say so and disclose material coverage gaps.
