@@ -12,10 +12,11 @@ Follow the legal-cyber-research skill:
    independent source. Budget about 12 searches total, including corroboration.
 3. Merge duplicate coverage into incidents; distinguish newly reported incidents
    from updates on older events. Exclude out-of-window reporting.
-4. If submit_brief is available, call it exactly once with the structured brief
-   after checking citations, and reply with its returned markdown. If it is not
-   available, return the source-cited research brief directly; do not claim it
-   was stored, delivered, or submitted.
+4. Call submit_brief exactly once with the structured brief after checking
+   citations. Include localDate, timezone, the supplied window, and a headline;
+   if no incidents qualify, include noIncidentsNote. If date or timezone is not
+   supplied, ask for it rather than guessing.
+5. Your final reply must be the returned markdown, without additions.
 
 Keep the brief concise: at most 8 incidents and approximately 400 words before
 sources. Every factual claim needs a numbered citation linked to a public source.

@@ -150,7 +150,7 @@ describe("project constraints", () => {
     expect(agent.hosting?.egressDomains).toEqual([...FEED_HOSTS, "hooks.slack.com", "*.webhook.office.com", "*.logic.azure.com"]);
     expect(agent.hosting?.secretNames).toEqual(["BRIEF_TIMEZONE", "BRIEF_WEBHOOK_URL", "BRIEF_WEBHOOK_FORMAT", "BRIEF_LOCAL_HOUR"]);
   });
-  it("has no process.env reads anywhere in current bot modules (including top level)", () => {
+  it("allows process.env only inside the call-time configuration function, never at module top level", () => {
     function check(dir: string) {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         const path = join(dir, entry.name);
@@ -159,7 +159,12 @@ describe("project constraints", () => {
           const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
           function visit(node: ts.Node) {
             if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
-              expect(node.getText(file), path).not.toMatch(/process(?:\s*\.\s*env|\s*\[\s*["']env["']\s*\])/);
+              if (/process(?:\s*\.\s*env|\s*\[\s*["']env["']\s*\])/.test(node.getText(file))) {
+                let parent: ts.Node | undefined = node.parent;
+                while (parent && !ts.isFunctionDeclaration(parent)) parent = parent.parent;
+                expect(path).toBe(join("bot", "lib", "config.ts"));
+                expect(parent && ts.isFunctionDeclaration(parent) && parent.name?.text).toBe("getBriefConfig");
+              }
             }
             ts.forEachChild(node, visit);
           }
