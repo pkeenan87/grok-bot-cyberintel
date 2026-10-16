@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Legal reports</title>
+  <entry>
+    <title type="html">Court &amp; tribunal cyberattack</title>
+    <link rel="self" href="https://example.com/entry.atom" type="application/atom+xml"/>
+    <link rel="alternate" href="https://example.com/court" type="text/html"/>
+    <published>2026-10-15T12:00:00+02:00</published>
+    <updated>2026-10-16T10:00:00Z</updated>
+    <summary type="html">&lt;p&gt;Court systems offline after a breach.&lt;/p&gt;</summary>
+  </entry>
+  <entry>
+    <title>Vendor compromise</title>
+    <link href="/vendor"/>
+    <updated>2026-10-14T09:00:00Z</updated>
+    <content>Legal software compromised.</content>
+  </entry>
+</feed>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Security reports</title>
+    <item>
+      <title>Example LLP discloses ransomware &amp; data theft</title>
+      <link>https://example.com/incident#details</link>
+      <pubDate>Wed, 14 Oct 2026 10:00:00 GMT</pubDate>
+      <description><![CDATA[<p>A law firm reports <b>ransomware</b>.</p>]]></description>
+    </item>
+    <item>
+      <title>Undated court report</title>
+      <link>https://example.com/undated</link>
+      <pubDate>not a date</pubDate>
+      <content:encoded><![CDATA[<div>Service interruption</div>]]></content:encoded>
+    </item>
+    <item><title>Unsafe URL</title><link>javascript:alert(1)</link></item>
+    <item><title>Missing link</title></item>
+  </channel>
+</rss>

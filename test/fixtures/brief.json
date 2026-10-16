@@ -1,0 +1,16 @@
+{
+  "localDate": "2026-06-08",
+  "timezone": "America/New_York",
+  "window": { "since": "2026-06-05T13:00:00Z", "until": "2026-06-08T13:00:00Z" },
+  "headline": "Fixture: legal-sector cyber reporting",
+  "incidents": [{
+    "title": "Example law firm reports disruption",
+    "organization": "Example LLP",
+    "orgType": "law_firm",
+    "attackType": "Cyberattack",
+    "status": "confirmed",
+    "summary": "A fictional fixture for deterministic testing, not a real incident.",
+    "whyItMatters": "Illustrates legal-service disruption.",
+    "sources": [{ "url": "https://example.com/report", "publisher": "Example publisher" }]
+  }]
+}
